@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Backup & Restore - Library Management System')
+@section('title', 'Backup & Restore - AklatBayon')
 
 @section('content')
 <div class="page-header">

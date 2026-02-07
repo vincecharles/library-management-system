@@ -85,7 +85,7 @@
             <div class="d-flex align-items-center justify-content-between">
                 <h4>
                     <i class="fas fa-book-open me-2"></i>
-                    {{ $libraryName ?? 'Library Management System' }}
+                    {{ $libraryName ?? 'AklatBayon' }}
                 </h4>
                 <div class="d-flex align-items-center gap-3">
                     <span class="text-white-50 small">Have an account?</span>

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Audit Logs - Library Management System')
+@section('title', 'Audit Logs - AklatBayon')
 
 @push('styles')
 <style>

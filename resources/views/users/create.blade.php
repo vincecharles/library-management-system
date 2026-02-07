@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Add New User - Library Management System')
+@section('title', 'Add New User - AklatBayon')
 
 @section('content')
 <div class="page-header">

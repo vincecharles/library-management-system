@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Categories Management - Library Management System')
+@section('title', 'Categories Management - AklatBayon')
 
 @section('content')
 <!-- Page Header -->

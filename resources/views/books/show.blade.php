@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', $book->title . ' - Library Management System')
+@section('title', $book->title . ' - AklatBayon')
 
 @section('content')
 <!-- Page Header -->

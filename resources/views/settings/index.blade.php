@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'System Settings - Library Management System')
+@section('title', 'System Settings - AklatBayon')
 
 @section('content')
 @php

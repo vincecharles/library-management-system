@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Librarian Dashboard - Library Management System')
+@section('title', 'Librarian Dashboard - AklatBayon')
 
 @section('content')
     <!-- Page Header -->
