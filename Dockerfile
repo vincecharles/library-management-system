@@ -28,8 +28,10 @@ RUN npm run build
 # Create SQLite database
 RUN mkdir -p database && touch database/database.sqlite
 
-# Setup Laravel
-RUN cp .env.example .env \
+RUN apt-get update \
+    && apt-get install -y libpng-dev libonig-dev libxml2-dev zip unzip \
+    && docker-php-ext-install pdo_mysql \
+    && cp .env.example .env \
     && php artisan key:generate \
     && php artisan migrate --force
 
