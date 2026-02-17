@@ -20,6 +20,8 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'role_id',
+        'user_type',
+        'faculty_subtype',
         'username',
         'name',
         'email',
@@ -54,6 +56,10 @@ class User extends Authenticatable
             'failed_login_attempts' => 'integer',
         ];
     }
+
+    // ──────────────────────────────────────────────
+    // Relationships
+    // ──────────────────────────────────────────────
 
     /**
      * Get the role that belongs to the user.
@@ -101,5 +107,77 @@ class User extends Authenticatable
     public function activityLogs(): HasMany
     {
         return $this->hasMany(ActivityLog::class);
+    }
+
+    // ──────────────────────────────────────────────
+    // User Type Helpers
+    // ──────────────────────────────────────────────
+
+    public function isLibrarian(): bool
+    {
+        return $this->user_type === 'librarian';
+    }
+
+    public function isStudentAssistant(): bool
+    {
+        return $this->user_type === 'student_assistant';
+    }
+
+    public function isStudent(): bool
+    {
+        return $this->user_type === 'student';
+    }
+
+    public function isFaculty(): bool
+    {
+        return $this->user_type === 'faculty';
+    }
+
+    public function isAdministrator(): bool
+    {
+        return $this->role && $this->role->name === 'Administrator';
+    }
+
+    /**
+     * Get a human-readable label for user_type + faculty_subtype.
+     */
+    public function getUserTypeLabelAttribute(): string
+    {
+        $labels = [
+            'librarian' => 'Librarian',
+            'student_assistant' => 'Student Assistant',
+            'student' => 'Student',
+            'faculty' => 'Faculty',
+        ];
+
+        $label = $labels[$this->user_type] ?? ucfirst($this->user_type ?? '');
+
+        if ($this->user_type === 'faculty' && $this->faculty_subtype) {
+            $subtypeLabels = [
+                'teacher' => 'Teacher',
+                'non_teacher' => 'Non-Teacher',
+                'staff' => 'Staff',
+            ];
+            $label .= ' — ' . ($subtypeLabels[$this->faculty_subtype] ?? ucfirst($this->faculty_subtype));
+        }
+
+        return $label;
+    }
+
+    // ──────────────────────────────────────────────
+    // Permission Helpers
+    // ──────────────────────────────────────────────
+
+    /**
+     * Check if the user (through their role) has a specific permission.
+     * Administrators bypass all permission checks.
+     */
+    public function hasPermission(string $permissionName): bool
+    {
+        if ($this->isAdministrator()) {
+            return true;
+        }
+
+        return $this->role && $this->role->hasPermission($permissionName);
     }
 }

@@ -59,6 +59,34 @@
 
             <div class="row mb-3">
                 <div class="col-md-6">
+                    <label for="user_type" class="form-label">User Type <span class="text-danger">*</span></label>
+                    <select name="user_type" id="user_type" class="form-select @error('user_type') is-invalid @enderror" required>
+                        <option value="">Select User Type</option>
+                        <option value="librarian" {{ old('user_type') == 'librarian' ? 'selected' : '' }}>Librarian</option>
+                        <option value="student_assistant" {{ old('user_type') == 'student_assistant' ? 'selected' : '' }}>Student Assistant</option>
+                        <option value="student" {{ old('user_type') == 'student' ? 'selected' : '' }}>Student</option>
+                        <option value="faculty" {{ old('user_type') == 'faculty' ? 'selected' : '' }}>Faculty</option>
+                    </select>
+                    @error('user_type')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+                <div class="col-md-6" id="faculty-subtype-wrapper" style="{{ old('user_type') === 'faculty' ? '' : 'display:none' }}">
+                    <label for="faculty_subtype" class="form-label">Faculty Sub-Type <span class="text-danger">*</span></label>
+                    <select name="faculty_subtype" id="faculty_subtype" class="form-select @error('faculty_subtype') is-invalid @enderror">
+                        <option value="">Select Faculty Sub-Type</option>
+                        <option value="teacher" {{ old('faculty_subtype') == 'teacher' ? 'selected' : '' }}>Teacher</option>
+                        <option value="non_teacher" {{ old('faculty_subtype') == 'non_teacher' ? 'selected' : '' }}>Non-Teacher</option>
+                        <option value="staff" {{ old('faculty_subtype') == 'staff' ? 'selected' : '' }}>Staff</option>
+                    </select>
+                    @error('faculty_subtype')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
                     <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
                     <input type="password" name="password" id="password" class="form-control @error('password') is-invalid @enderror" placeholder="Enter password" required>
                     @error('password')
@@ -85,13 +113,18 @@
             </div>
 
             <div class="mb-4">
-                <label class="form-label">Available Roles</label>
+                <label class="form-label">Actor Types Reference</label>
                 <div>
                     <span class="badge bg-dark me-1"><i class="fas fa-shield-alt me-1"></i> Administrator</span>
                     <span class="badge bg-danger me-1"><i class="fas fa-user-tie me-1"></i> Librarian</span>
-                    <span class="badge bg-success me-1"><i class="fas fa-user me-1"></i> Assistant Librarian</span>
+                    <span class="badge bg-success me-1"><i class="fas fa-user me-1"></i> Student Assistant</span>
+                    <span class="badge bg-info me-1"><i class="fas fa-user-graduate me-1"></i> Student</span>
+                    <span class="badge bg-warning text-dark me-1"><i class="fas fa-chalkboard-teacher me-1"></i> Faculty</span>
                 </div>
-                <small class="text-muted mt-1 d-block">Each role has different access permissions within the system.</small>
+                <small class="text-muted mt-1 d-block">
+                    Faculty members have sub-types: Teacher, Non-Teacher, or Staff.
+                    Each role has different access permissions within the system.
+                </small>
             </div>
 
             <hr>
@@ -108,3 +141,20 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.getElementById('user_type').addEventListener('change', function() {
+    const wrapper = document.getElementById('faculty-subtype-wrapper');
+    const select = document.getElementById('faculty_subtype');
+    if (this.value === 'faculty') {
+        wrapper.style.display = '';
+        select.setAttribute('required', 'required');
+    } else {
+        wrapper.style.display = 'none';
+        select.removeAttribute('required');
+        select.value = '';
+    }
+});
+</script>
+@endpush

@@ -17,6 +17,7 @@ use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\GuestController;
+use App\Http\Controllers\RolePermissionController;
 
 // Guest/Public Routes
 Route::get('/', function () {
@@ -35,8 +36,13 @@ Route::middleware('auth')->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // User Management (Admin only)
+    // User Management (requires can_manage_users permission)
     Route::resource('users', UserController::class);
+
+    // Role & Permission Management
+    Route::get('/roles', [RolePermissionController::class, 'index'])->name('roles.index');
+    Route::get('/roles/{role}/permissions', [RolePermissionController::class, 'edit'])->name('roles.permissions.edit');
+    Route::put('/roles/{role}/permissions', [RolePermissionController::class, 'update'])->name('roles.permissions.update');
 
     // Student Management
     Route::resource('students', StudentController::class);

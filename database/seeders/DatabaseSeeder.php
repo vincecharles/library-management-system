@@ -10,89 +10,166 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // Roles
+        // ─── Roles ───
         $roles = [
-            ['id' => 1, 'name' => 'Administrator', 'description' => 'Full system access'],
-            ['id' => 2, 'name' => 'Librarian', 'description' => 'Circulation and management'],
-            ['id' => 3, 'name' => 'Assistant Librarian', 'description' => 'Issue/Return books'],
-            ['id' => 4, 'name' => 'Student', 'description' => 'Self-service portal'],
+            ['id' => 1, 'name' => 'Administrator',      'description' => 'Full system access — all permissions automatically granted'],
+            ['id' => 2, 'name' => 'Librarian',           'description' => 'Circulation, catalog management, and reporting'],
+            ['id' => 3, 'name' => 'Student Assistant',    'description' => 'Issue/Return books and basic circulation'],
+            ['id' => 4, 'name' => 'Student',              'description' => 'Self-service portal — view catalog, borrowing history'],
+            ['id' => 5, 'name' => 'Faculty',              'description' => 'Faculty portal — view catalog, extended borrowing'],
         ];
         foreach ($roles as $role) {
             DB::table('roles')->insert(array_merge($role, ['created_at' => now(), 'updated_at' => now()]));
         }
 
-        // Admin user
+        // ─── Permissions ───
+        $permissions = [
+            // Books
+            ['name' => 'can_issue_books',      'label' => 'Issue Books',          'group' => 'Books',   'description' => 'Allow issuing books to students and faculty'],
+            ['name' => 'can_return_books',      'label' => 'Return Books',         'group' => 'Books',   'description' => 'Allow processing book returns'],
+            ['name' => 'can_manage_books',      'label' => 'Manage Books',         'group' => 'Books',   'description' => 'Add, edit, or remove books from the catalog'],
+
+            // Catalog
+            ['name' => 'can_add_categories',    'label' => 'Add / Manage Categories', 'group' => 'Catalog', 'description' => 'Create, edit, or delete book categories'],
+            ['name' => 'can_manage_authors',    'label' => 'Manage Authors',       'group' => 'Catalog', 'description' => 'Add, edit, or remove author records'],
+            ['name' => 'can_manage_publishers', 'label' => 'Manage Publishers',    'group' => 'Catalog', 'description' => 'Add, edit, or remove publisher records'],
+
+            // Reports
+            ['name' => 'can_view_reports',      'label' => 'View Reports',         'group' => 'Reports', 'description' => 'Access and generate library reports'],
+
+            // Users
+            ['name' => 'can_manage_users',      'label' => 'Manage Users',         'group' => 'Users',   'description' => 'Create, edit, or deactivate user accounts'],
+            ['name' => 'can_manage_roles',      'label' => 'Manage Roles & Permissions', 'group' => 'Users', 'description' => 'Assign and modify role permissions'],
+            ['name' => 'can_manage_students',   'label' => 'Manage Students',      'group' => 'Users',   'description' => 'Add, edit, or remove student records'],
+
+            // System
+            ['name' => 'can_manage_settings',   'label' => 'Manage Settings',      'group' => 'System',  'description' => 'Configure library system settings'],
+            ['name' => 'can_manage_backups',    'label' => 'Manage Backups',       'group' => 'System',  'description' => 'Create and restore database backups'],
+            ['name' => 'can_view_audit_logs',   'label' => 'View Audit Logs',      'group' => 'System',  'description' => 'View system activity and audit trail'],
+        ];
+        foreach ($permissions as $perm) {
+            DB::table('permissions')->insert(array_merge($perm, ['created_at' => now(), 'updated_at' => now()]));
+        }
+
+        // ─── Role-Permission Assignments ───
+        // Administrator (role_id=1) — gets ALL automatically via Gate, no pivot rows needed
+        // Librarian (role_id=2) — books, catalog, reports, students
+        $librarianPerms = [1, 2, 3, 4, 5, 6, 7, 10]; // can_issue, return, manage_books, categories, authors, publishers, reports, students
+        foreach ($librarianPerms as $permId) {
+            DB::table('role_permission')->insert(['role_id' => 2, 'permission_id' => $permId]);
+        }
+
+        // Student Assistant (role_id=3) — issue/return only
+        foreach ([1, 2] as $permId) {
+            DB::table('role_permission')->insert(['role_id' => 3, 'permission_id' => $permId]);
+        }
+
+        // Student (role_id=4) — no special permissions (view-only)
+        // Faculty (role_id=5) — no special permissions (view-only)
+
+        // ─── Admin User ───
         DB::table('users')->insert([
-            'role_id' => 1,
-            'username' => 'admin',
-            'name' => 'System Administrator',
-            'email' => 'admin@library.com',
-            'password' => Hash::make('admin123'),
-            'status' => 'active',
+            'role_id'    => 1,
+            'user_type'  => 'librarian',
+            'username'   => 'admin',
+            'name'       => 'System Administrator',
+            'email'      => 'admin@library.com',
+            'password'   => Hash::make('admin123'),
+            'status'     => 'active',
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        // Librarian user
+        // ─── Librarian User ───
         DB::table('users')->insert([
-            'role_id' => 2,
-            'username' => 'librarian',
-            'name' => 'Maria Santos',
-            'email' => 'librarian@library.com',
-            'password' => Hash::make('librarian123'),
-            'status' => 'active',
+            'role_id'    => 2,
+            'user_type'  => 'librarian',
+            'username'   => 'librarian',
+            'name'       => 'Maria Santos',
+            'email'      => 'librarian@library.com',
+            'password'   => Hash::make('librarian123'),
+            'status'     => 'active',
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        // Assistant Librarian
+        // ─── Student Assistant User ───
         DB::table('users')->insert([
-            'role_id' => 3,
-            'username' => 'assistant',
-            'name' => 'Pedro Reyes',
-            'email' => 'assistant@library.com',
-            'password' => Hash::make('assistant123'),
-            'status' => 'active',
+            'role_id'    => 3,
+            'user_type'  => 'student_assistant',
+            'username'   => 'assistant',
+            'name'       => 'Pedro Reyes',
+            'email'      => 'assistant@library.com',
+            'password'   => Hash::make('assistant123'),
+            'status'     => 'active',
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        // Academic Year
+        // ─── Faculty User (Teacher) ───
+        DB::table('users')->insert([
+            'role_id'         => 5,
+            'user_type'       => 'faculty',
+            'faculty_subtype' => 'teacher',
+            'username'        => 'teacher',
+            'name'            => 'Dr. Elena Cruz',
+            'email'           => 'teacher@library.com',
+            'password'        => Hash::make('teacher123'),
+            'status'          => 'active',
+            'created_at'      => now(),
+            'updated_at'      => now(),
+        ]);
+
+        // ─── Faculty User (Staff) ───
+        DB::table('users')->insert([
+            'role_id'         => 5,
+            'user_type'       => 'faculty',
+            'faculty_subtype' => 'staff',
+            'username'        => 'staff',
+            'name'            => 'Rosa Mendez',
+            'email'           => 'staff@library.com',
+            'password'        => Hash::make('staff123'),
+            'status'          => 'active',
+            'created_at'      => now(),
+            'updated_at'      => now(),
+        ]);
+
+        // ─── Academic Year ───
         DB::table('academic_years')->insert([
-            'name' => '2025-2026',
+            'name'       => '2025-2026',
             'start_date' => '2025-06-01',
-            'end_date' => '2026-03-31',
+            'end_date'   => '2026-03-31',
             'is_current' => true,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        // Grade Levels
+        // ─── Grade Levels ───
         for ($i = 1; $i <= 12; $i++) {
             DB::table('grade_levels')->insert([
-                'name' => "Grade $i",
+                'name'        => "Grade $i",
                 'level_order' => $i,
-                'status' => 'active',
-                'created_at' => now(),
-                'updated_at' => now(),
+                'status'      => 'active',
+                'created_at'  => now(),
+                'updated_at'  => now(),
             ]);
         }
 
-        // Sections
+        // ─── Sections ───
         $sectionNames = ['A', 'B', 'C'];
         for ($g = 1; $g <= 12; $g++) {
             foreach ($sectionNames as $s) {
                 DB::table('sections')->insert([
                     'grade_level_id' => $g,
-                    'name' => "Section $s",
-                    'status' => 'active',
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'name'           => "Section $s",
+                    'status'         => 'active',
+                    'created_at'     => now(),
+                    'updated_at'     => now(),
                 ]);
             }
         }
 
-        // ─── LCC Categories (Library of Congress Classification) ───
+        // ─── LCC Categories (with sub-categories for demo) ───
         $categories = [
             ['name' => 'A - General Works',               'description' => 'Encyclopedias, dictionaries, general reference works'],
             ['name' => 'B - Philosophy, Psychology, Religion', 'description' => 'Philosophy, psychology, and religion'],
@@ -117,7 +194,39 @@ class DatabaseSeeder extends Seeder
         ];
         foreach ($categories as $cat) {
             DB::table('categories')->insert(array_merge($cat, [
-                'status' => 'active',
+                'parent_id'  => null,
+                'status'     => 'active',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]));
+        }
+
+        // ─── Demo Sub-Categories (to showcase recursive navigation) ───
+        // Sub-categories under "Q - Science" (id=15)
+        $scienceSubCats = [
+            ['parent_id' => 15, 'name' => 'QA - Mathematics',   'description' => 'Mathematics, algebra, calculus'],
+            ['parent_id' => 15, 'name' => 'QB - Astronomy',     'description' => 'Astronomy and astrophysics'],
+            ['parent_id' => 15, 'name' => 'QC - Physics',       'description' => 'Physics and physical sciences'],
+            ['parent_id' => 15, 'name' => 'QD - Chemistry',     'description' => 'Chemistry and chemical sciences'],
+            ['parent_id' => 15, 'name' => 'QH - Biology',       'description' => 'Biology, natural history, ecology'],
+        ];
+        foreach ($scienceSubCats as $sub) {
+            DB::table('categories')->insert(array_merge($sub, [
+                'status'     => 'active',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]));
+        }
+
+        // Sub-categories under "T - Technology" (id=18)
+        $techSubCats = [
+            ['parent_id' => 18, 'name' => 'TA - Engineering',       'description' => 'General engineering'],
+            ['parent_id' => 18, 'name' => 'TK - Electrical Engr.',  'description' => 'Electrical and electronic engineering'],
+            ['parent_id' => 18, 'name' => 'QA76 - Computer Science', 'description' => 'Computer science and programming'],
+        ];
+        foreach ($techSubCats as $sub) {
+            DB::table('categories')->insert(array_merge($sub, [
+                'status'     => 'active',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]));
@@ -125,51 +234,35 @@ class DatabaseSeeder extends Seeder
 
         // ─── Authors ───
         $authors = [
-            // 1 - General Works / Reference
             ['name' => 'Encyclopaedia Britannica Editors', 'nationality' => 'British'],
-            // 2 - Philosophy / Psychology / Religion
             ['name' => 'Plato',               'nationality' => 'Greek'],
             ['name' => 'Daniel Kahneman',      'nationality' => 'Israeli-American'],
             ['name' => 'C.S. Lewis',           'nationality' => 'British'],
-            // 5 - History
             ['name' => 'Howard Zinn',          'nationality' => 'American'],
             ['name' => 'Ambrosio Rianzares Bautista', 'nationality' => 'Filipino'],
-            // 7 - Geography / Anthropology
             ['name' => 'Jared Diamond',        'nationality' => 'American'],
-            // 8 - Social Sciences
             ['name' => 'Adam Smith',           'nationality' => 'Scottish'],
             ['name' => 'Thomas Piketty',       'nationality' => 'French'],
-            // 10 - Political Science
             ['name' => 'John Rawls',           'nationality' => 'American'],
-            // 11 - Law
             ['name' => 'Miriam Defensor Santiago', 'nationality' => 'Filipino'],
-            // 12 - Education
             ['name' => 'Paulo Freire',         'nationality' => 'Brazilian'],
-            // 13 - Fine Arts
             ['name' => 'E.H. Gombrich',        'nationality' => 'Austrian-British'],
-            // 14 - Language and Literature
             ['name' => 'Jose Rizal',           'nationality' => 'Filipino'],
             ['name' => 'William Shakespeare',  'nationality' => 'British'],
             ['name' => 'Harper Lee',           'nationality' => 'American'],
             ['name' => 'F. Sionil Jose',       'nationality' => 'Filipino'],
             ['name' => 'Nick Joaquin',         'nationality' => 'Filipino'],
-            // 19 - Science
             ['name' => 'Charles Darwin',       'nationality' => 'British'],
             ['name' => 'Stephen Hawking',      'nationality' => 'British'],
             ['name' => 'James Stewart',        'nationality' => 'Canadian'],
             ['name' => 'Serway & Jewett',      'nationality' => 'American'],
-            // 23 - Medicine
             ['name' => 'Henry Gray',           'nationality' => 'British'],
             ['name' => 'Harrison (Kasper et al.)', 'nationality' => 'American'],
-            // 25 - Agriculture
             ['name' => 'Rachel Carson',        'nationality' => 'American'],
-            // 26 - Technology / Computer Science
             ['name' => 'Robert C. Martin',     'nationality' => 'American'],
             ['name' => 'Andrew S. Tanenbaum',  'nationality' => 'American'],
             ['name' => 'Thomas H. Cormen',     'nationality' => 'American'],
-            // 29 - Military Science
             ['name' => 'Sun Tzu',              'nationality' => 'Chinese'],
-            // 30 - Library Science
             ['name' => 'Lois Mai Chan',        'nationality' => 'American'],
         ];
         foreach ($authors as $author) {
@@ -209,37 +302,18 @@ class DatabaseSeeder extends Seeder
 
         // ─── Books (LCC-classified certified titles) ───
         $books = [
-            // A - General Works (category_id=1)
             ['isbn' => '978-1593392925', 'title' => 'Encyclopaedia Britannica (Concise Edition)', 'category_id' => 1, 'publication_year' => 2006, 'total_copies' => 3, 'available_copies' => 3, 'shelf_location' => 'A-01-01', 'description' => 'LCC: AE5 .E363 — Concise general knowledge encyclopedia covering all major fields.'],
-
-            // B - Philosophy, Psychology, Religion (category_id=2)
             ['isbn' => '978-0872201248', 'title' => 'The Republic', 'category_id' => 2, 'publication_year' => 1992, 'total_copies' => 5, 'available_copies' => 5, 'shelf_location' => 'B-01-01', 'description' => 'LCC: JC71 .P35 — Classic philosophical dialogue on justice, the ideal state, and the philosopher-king.'],
             ['isbn' => '978-0374533557', 'title' => 'Thinking, Fast and Slow', 'category_id' => 2, 'publication_year' => 2011, 'total_copies' => 4, 'available_copies' => 4, 'shelf_location' => 'B-01-02', 'description' => 'LCC: BF441 .K235 — Explores the two systems of thought that drive the way we think and make decisions.'],
             ['isbn' => '978-0060652920', 'title' => 'Mere Christianity', 'category_id' => 2, 'publication_year' => 2001, 'total_copies' => 4, 'available_copies' => 4, 'shelf_location' => 'B-01-03', 'description' => 'LCC: BT77 .L48 — Theological exploration of Christian belief compiled from BBC radio talks.'],
-
-            // D - World History (category_id=4)
             ['isbn' => '978-0060838652', 'title' => 'A People\'s History of the United States', 'category_id' => 5, 'publication_year' => 2015, 'total_copies' => 5, 'available_copies' => 5, 'shelf_location' => 'D-01-01', 'description' => 'LCC: E178 .Z56 — American history from the perspective of marginalized peoples.'],
-
-            // G - Geography, Anthropology (category_id=7)
             ['isbn' => '978-0393354324', 'title' => 'Guns, Germs, and Steel: The Fates of Human Societies', 'category_id' => 7, 'publication_year' => 2017, 'total_copies' => 4, 'available_copies' => 4, 'shelf_location' => 'G-01-01', 'description' => 'LCC: HM206 .D48 — Explores why certain civilizations became dominant through geography, agriculture, and technology.'],
-
-            // H - Social Sciences (category_id=8)
             ['isbn' => '978-0140432084', 'title' => 'The Wealth of Nations', 'category_id' => 8, 'publication_year' => 1999, 'total_copies' => 4, 'available_copies' => 4, 'shelf_location' => 'H-01-01', 'description' => 'LCC: HB161 .S6 — Foundational work in economics discussing free markets, division of labor, and trade.'],
             ['isbn' => '978-0674979857', 'title' => 'Capital in the Twenty-First Century', 'category_id' => 8, 'publication_year' => 2014, 'total_copies' => 3, 'available_copies' => 3, 'shelf_location' => 'H-01-02', 'description' => 'LCC: HB501 .P43613 — Analyzes wealth concentration and distribution over the past 250 years.'],
-
-            // J - Political Science (category_id=9)
             ['isbn' => '978-0674000780', 'title' => 'A Theory of Justice', 'category_id' => 9, 'publication_year' => 1999, 'total_copies' => 3, 'available_copies' => 3, 'shelf_location' => 'J-01-01', 'description' => 'LCC: JC578 .R38 — Landmark work on distributive justice and the social contract.'],
-
-            // K - Law (category_id=10)
             ['isbn' => '978-9710873012', 'title' => 'Philippine Political Law', 'category_id' => 10, 'publication_year' => 2011, 'total_copies' => 5, 'available_copies' => 5, 'shelf_location' => 'K-01-01', 'description' => 'LCC: KPM2070 .S26 — Comprehensive text on the Philippine Constitution and political law.'],
-
-            // L - Education (category_id=11)
             ['isbn' => '978-0826412768', 'title' => 'Pedagogy of the Oppressed', 'category_id' => 11, 'publication_year' => 2000, 'total_copies' => 5, 'available_copies' => 5, 'shelf_location' => 'L-01-01', 'description' => 'LCC: LB880 .F73 — Foundational text on critical pedagogy and education as a practice of freedom.'],
-
-            // N - Fine Arts (category_id=13)
             ['isbn' => '978-0714832470', 'title' => 'The Story of Art', 'category_id' => 13, 'publication_year' => 1995, 'total_copies' => 3, 'available_copies' => 3, 'shelf_location' => 'N-01-01', 'description' => 'LCC: N5300 .G6 — One of the most famous and popular books on art ever written, covering prehistoric to modern art.'],
-
-            // P - Language and Literature (category_id=14)
             ['isbn' => '978-9710872985', 'title' => 'Noli Me Tangere', 'category_id' => 14, 'publication_year' => 1887, 'total_copies' => 12, 'available_copies' => 12, 'shelf_location' => 'P-01-01', 'description' => 'LCC: PQ8897 .R5 N6 — Jose Rizal\'s novel exposing the injustices of Spanish colonial rule in the Philippines.'],
             ['isbn' => '978-9710872992', 'title' => 'El Filibusterismo', 'category_id' => 14, 'publication_year' => 1891, 'total_copies' => 12, 'available_copies' => 12, 'shelf_location' => 'P-01-02', 'description' => 'LCC: PQ8897 .R5 E4 — Sequel to Noli Me Tangere; portrays the dark side of colonial society and revolution.'],
             ['isbn' => '978-0743477109', 'title' => 'Romeo and Juliet', 'category_id' => 14, 'publication_year' => 2004, 'total_copies' => 8, 'available_copies' => 8, 'shelf_location' => 'P-01-03', 'description' => 'LCC: PR2831 .A2 — Shakespeare\'s famous tragedy of star-crossed lovers from rival families.'],
@@ -247,110 +321,97 @@ class DatabaseSeeder extends Seeder
             ['isbn' => '978-0060935467', 'title' => 'To Kill a Mockingbird', 'category_id' => 14, 'publication_year' => 1960, 'total_copies' => 8, 'available_copies' => 8, 'shelf_location' => 'P-01-05', 'description' => 'LCC: PS3562.E353 T6 — A novel about racial injustice in the American South, seen through a child\'s eyes.'],
             ['isbn' => '978-9710540143', 'title' => 'The Pretenders', 'category_id' => 14, 'publication_year' => 1962, 'total_copies' => 5, 'available_copies' => 5, 'shelf_location' => 'P-01-06', 'description' => 'LCC: PR9550.9 .J67 P7 — First novel of the Rosales Saga following an Ilokano family through Philippine history.'],
             ['isbn' => '978-9710543088', 'title' => 'The Woman Who Had Two Navels', 'category_id' => 14, 'publication_year' => 1961, 'total_copies' => 4, 'available_copies' => 4, 'shelf_location' => 'P-01-07', 'description' => 'LCC: PR9550.9 .J6 W6 — Nick Joaquin\'s novel exploring Filipino identity, myth, and colonial legacy.'],
-
-            // Q - Science (category_id=15)
             ['isbn' => '978-0451529060', 'title' => 'On the Origin of Species', 'category_id' => 15, 'publication_year' => 2003, 'total_copies' => 4, 'available_copies' => 4, 'shelf_location' => 'Q-01-01', 'description' => 'LCC: QH365 .O2 — Darwin\'s foundational work on evolution through natural selection.'],
             ['isbn' => '978-0553380163', 'title' => 'A Brief History of Time', 'category_id' => 15, 'publication_year' => 1998, 'total_copies' => 5, 'available_copies' => 5, 'shelf_location' => 'Q-01-02', 'description' => 'LCC: QB981 .H377 — Explores cosmology, black holes, and the nature of time for general readers.'],
             ['isbn' => '978-1285740621', 'title' => 'Calculus: Early Transcendentals', 'category_id' => 15, 'publication_year' => 2015, 'total_copies' => 10, 'available_copies' => 10, 'shelf_location' => 'Q-02-01', 'description' => 'LCC: QA303.2 .S73 — Widely used university textbook covering single and multivariable calculus.'],
             ['isbn' => '978-1133947271', 'title' => 'Physics for Scientists and Engineers', 'category_id' => 15, 'publication_year' => 2013, 'total_copies' => 6, 'available_copies' => 6, 'shelf_location' => 'Q-02-02', 'description' => 'LCC: QC21.3 .S47 — Comprehensive physics textbook covering mechanics, thermodynamics, electromagnetism, and modern physics.'],
-
-            // R - Medicine (category_id=16)
             ['isbn' => '978-0702052309', 'title' => 'Gray\'s Anatomy (42nd Edition)', 'category_id' => 16, 'publication_year' => 2020, 'total_copies' => 3, 'available_copies' => 3, 'shelf_location' => 'R-01-01', 'description' => 'LCC: QM23.2 .G73 — The definitive anatomical reference used by medical students and professionals worldwide.'],
             ['isbn' => '978-1259644030', 'title' => 'Harrison\'s Principles of Internal Medicine (20th Edition)', 'category_id' => 16, 'publication_year' => 2018, 'total_copies' => 3, 'available_copies' => 3, 'shelf_location' => 'R-01-02', 'description' => 'LCC: RC46 .H33 — Gold-standard internal medicine reference covering diagnosis and treatment of disease.'],
-
-            // S - Agriculture (category_id=17)
             ['isbn' => '978-0618249060', 'title' => 'Silent Spring', 'category_id' => 17, 'publication_year' => 2002, 'total_copies' => 4, 'available_copies' => 4, 'shelf_location' => 'S-01-01', 'description' => 'LCC: QH545.P4 C37 — Landmark book on the environmental impact of pesticides that launched the modern environmental movement.'],
-
-            // T - Technology (category_id=18)
             ['isbn' => '978-0132350884', 'title' => 'Clean Code: A Handbook of Agile Software Craftsmanship', 'category_id' => 18, 'publication_year' => 2008, 'total_copies' => 5, 'available_copies' => 5, 'shelf_location' => 'T-01-01', 'description' => 'LCC: QA76.76.D47 M367 — Guide to writing readable, maintainable, and elegant software code.'],
             ['isbn' => '978-0132126953', 'title' => 'Modern Operating Systems (4th Edition)', 'category_id' => 18, 'publication_year' => 2014, 'total_copies' => 4, 'available_copies' => 4, 'shelf_location' => 'T-01-02', 'description' => 'LCC: QA76.76.O63 T36 — Comprehensive textbook on OS design: processes, memory, file systems, and security.'],
             ['isbn' => '978-0262033848', 'title' => 'Introduction to Algorithms (3rd Edition)', 'category_id' => 18, 'publication_year' => 2009, 'total_copies' => 5, 'available_copies' => 5, 'shelf_location' => 'T-01-03', 'description' => 'LCC: QA76.6 .C662 — Definitive textbook on algorithms covering sorting, graph theory, dynamic programming, and more.'],
-
-            // U - Military Science (category_id=19)
             ['isbn' => '978-1590302255', 'title' => 'The Art of War', 'category_id' => 19, 'publication_year' => 2003, 'total_copies' => 5, 'available_copies' => 5, 'shelf_location' => 'U-01-01', 'description' => 'LCC: U101 .S95 — Ancient Chinese military treatise on strategy, leadership, and tactics.'],
-
-            // Z - Bibliography, Library Science (category_id=20)
             ['isbn' => '978-1591581543', 'title' => 'Cataloging and Classification: An Introduction', 'category_id' => 20, 'publication_year' => 2006, 'total_copies' => 3, 'available_copies' => 3, 'shelf_location' => 'Z-01-01', 'description' => 'LCC: Z693 .C48 — Standard textbook for library cataloging covering MARC, AACR2, LCC, and DDC.'],
         ];
 
         foreach ($books as $book) {
             DB::table('books')->insert(array_merge($book, [
-                'status' => 'active',
+                'status'     => 'active',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]));
         }
 
         // ─── Book-Author relationships ───
-        // Book IDs correspond to array order (1-based)
         $bookAuthors = [
-            ['book_id' => 1,  'author_id' => 1],   // Britannica - Britannica Editors
-            ['book_id' => 2,  'author_id' => 2],   // The Republic - Plato
-            ['book_id' => 3,  'author_id' => 3],   // Thinking, Fast and Slow - Daniel Kahneman
-            ['book_id' => 4,  'author_id' => 4],   // Mere Christianity - C.S. Lewis
-            ['book_id' => 5,  'author_id' => 5],   // A People's History - Howard Zinn
-            ['book_id' => 6,  'author_id' => 7],   // Guns, Germs, Steel - Jared Diamond
-            ['book_id' => 7,  'author_id' => 8],   // Wealth of Nations - Adam Smith
-            ['book_id' => 8,  'author_id' => 9],   // Capital 21st Century - Thomas Piketty
-            ['book_id' => 9,  'author_id' => 10],  // Theory of Justice - John Rawls
-            ['book_id' => 10, 'author_id' => 11],  // Philippine Political Law - Miriam Santiago
-            ['book_id' => 11, 'author_id' => 12],  // Pedagogy of the Oppressed - Paulo Freire
-            ['book_id' => 12, 'author_id' => 13],  // Story of Art - E.H. Gombrich
-            ['book_id' => 13, 'author_id' => 14],  // Noli Me Tangere - Jose Rizal
-            ['book_id' => 14, 'author_id' => 14],  // El Filibusterismo - Jose Rizal
-            ['book_id' => 15, 'author_id' => 15],  // Romeo and Juliet - Shakespeare
-            ['book_id' => 16, 'author_id' => 15],  // Hamlet - Shakespeare
-            ['book_id' => 17, 'author_id' => 16],  // To Kill a Mockingbird - Harper Lee
-            ['book_id' => 18, 'author_id' => 17],  // The Pretenders - F. Sionil Jose
-            ['book_id' => 19, 'author_id' => 18],  // Woman Two Navels - Nick Joaquin
-            ['book_id' => 20, 'author_id' => 19],  // Origin of Species - Charles Darwin
-            ['book_id' => 21, 'author_id' => 20],  // Brief History of Time - Stephen Hawking
-            ['book_id' => 22, 'author_id' => 21],  // Calculus - James Stewart
-            ['book_id' => 23, 'author_id' => 22],  // Physics - Serway & Jewett
-            ['book_id' => 24, 'author_id' => 23],  // Gray's Anatomy - Henry Gray
-            ['book_id' => 25, 'author_id' => 24],  // Harrison's - Harrison (Kasper et al.)
-            ['book_id' => 26, 'author_id' => 25],  // Silent Spring - Rachel Carson
-            ['book_id' => 27, 'author_id' => 26],  // Clean Code - Robert C. Martin
-            ['book_id' => 28, 'author_id' => 27],  // Modern OS - Andrew Tanenbaum
-            ['book_id' => 29, 'author_id' => 28],  // Intro to Algorithms - Thomas Cormen
-            ['book_id' => 30, 'author_id' => 29],  // Art of War - Sun Tzu
-            ['book_id' => 31, 'author_id' => 30],  // Cataloging & Classification - Lois Mai Chan
+            ['book_id' => 1,  'author_id' => 1],
+            ['book_id' => 2,  'author_id' => 2],
+            ['book_id' => 3,  'author_id' => 3],
+            ['book_id' => 4,  'author_id' => 4],
+            ['book_id' => 5,  'author_id' => 5],
+            ['book_id' => 6,  'author_id' => 7],
+            ['book_id' => 7,  'author_id' => 8],
+            ['book_id' => 8,  'author_id' => 9],
+            ['book_id' => 9,  'author_id' => 10],
+            ['book_id' => 10, 'author_id' => 11],
+            ['book_id' => 11, 'author_id' => 12],
+            ['book_id' => 12, 'author_id' => 13],
+            ['book_id' => 13, 'author_id' => 14],
+            ['book_id' => 14, 'author_id' => 14],
+            ['book_id' => 15, 'author_id' => 15],
+            ['book_id' => 16, 'author_id' => 15],
+            ['book_id' => 17, 'author_id' => 16],
+            ['book_id' => 18, 'author_id' => 17],
+            ['book_id' => 19, 'author_id' => 18],
+            ['book_id' => 20, 'author_id' => 19],
+            ['book_id' => 21, 'author_id' => 20],
+            ['book_id' => 22, 'author_id' => 21],
+            ['book_id' => 23, 'author_id' => 22],
+            ['book_id' => 24, 'author_id' => 23],
+            ['book_id' => 25, 'author_id' => 24],
+            ['book_id' => 26, 'author_id' => 25],
+            ['book_id' => 27, 'author_id' => 26],
+            ['book_id' => 28, 'author_id' => 27],
+            ['book_id' => 29, 'author_id' => 28],
+            ['book_id' => 30, 'author_id' => 29],
+            ['book_id' => 31, 'author_id' => 30],
         ];
         DB::table('book_authors')->insert($bookAuthors);
 
         // ─── Book-Publisher relationships ───
         $bookPublishers = [
-            ['book_id' => 1,  'publisher_id' => 1],   // Britannica - Enc. Britannica Inc.
-            ['book_id' => 2,  'publisher_id' => 2],   // Republic - Hackett
-            ['book_id' => 3,  'publisher_id' => 3],   // Thinking - Farrar, Straus
-            ['book_id' => 4,  'publisher_id' => 4],   // Mere Christianity - HarperCollins
-            ['book_id' => 5,  'publisher_id' => 5],   // People's History - Harper Perennial
-            ['book_id' => 6,  'publisher_id' => 6],   // Guns Germs - W.W. Norton
-            ['book_id' => 7,  'publisher_id' => 7],   // Wealth of Nations - Penguin
-            ['book_id' => 8,  'publisher_id' => 8],   // Capital - Harvard University Press
-            ['book_id' => 9,  'publisher_id' => 8],   // Theory of Justice - Harvard University Press
-            ['book_id' => 10, 'publisher_id' => 22],  // Philippine Political Law - Rex Book Store
-            ['book_id' => 11, 'publisher_id' => 9],   // Pedagogy - Bloomsbury
-            ['book_id' => 12, 'publisher_id' => 10],  // Story of Art - Phaidon
-            ['book_id' => 13, 'publisher_id' => 22],  // Noli Me Tangere - Rex Book Store
-            ['book_id' => 14, 'publisher_id' => 22],  // El Filibusterismo - Rex Book Store
-            ['book_id' => 15, 'publisher_id' => 11],  // Romeo Juliet - Penguin Classics (using Simon & Schuster-like)
-            ['book_id' => 16, 'publisher_id' => 11],  // Hamlet - Penguin Classics
-            ['book_id' => 17, 'publisher_id' => 4],   // To Kill a Mockingbird - HarperCollins
-            ['book_id' => 18, 'publisher_id' => 12],  // Pretenders - Solidaridad
-            ['book_id' => 19, 'publisher_id' => 13],  // Woman Two Navels - Anvil
-            ['book_id' => 20, 'publisher_id' => 7],   // Origin of Species - Penguin
-            ['book_id' => 21, 'publisher_id' => 16],  // Brief History - Bantam
-            ['book_id' => 22, 'publisher_id' => 14],  // Calculus - Cengage
-            ['book_id' => 23, 'publisher_id' => 14],  // Physics - Cengage
-            ['book_id' => 24, 'publisher_id' => 17],  // Gray's Anatomy - Elsevier
-            ['book_id' => 25, 'publisher_id' => 18],  // Harrison's - McGraw-Hill
-            ['book_id' => 26, 'publisher_id' => 19],  // Silent Spring - Houghton Mifflin
-            ['book_id' => 27, 'publisher_id' => 24],  // Clean Code - Prentice Hall
-            ['book_id' => 28, 'publisher_id' => 20],  // Modern OS - Pearson
-            ['book_id' => 29, 'publisher_id' => 21],  // Intro Algorithms - MIT Press
-            ['book_id' => 30, 'publisher_id' => 11],  // Art of War - Penguin Classics
-            ['book_id' => 31, 'publisher_id' => 23],  // Cataloging - Libraries Unlimited
+            ['book_id' => 1,  'publisher_id' => 1],
+            ['book_id' => 2,  'publisher_id' => 2],
+            ['book_id' => 3,  'publisher_id' => 3],
+            ['book_id' => 4,  'publisher_id' => 4],
+            ['book_id' => 5,  'publisher_id' => 5],
+            ['book_id' => 6,  'publisher_id' => 6],
+            ['book_id' => 7,  'publisher_id' => 7],
+            ['book_id' => 8,  'publisher_id' => 8],
+            ['book_id' => 9,  'publisher_id' => 8],
+            ['book_id' => 10, 'publisher_id' => 22],
+            ['book_id' => 11, 'publisher_id' => 9],
+            ['book_id' => 12, 'publisher_id' => 10],
+            ['book_id' => 13, 'publisher_id' => 22],
+            ['book_id' => 14, 'publisher_id' => 22],
+            ['book_id' => 15, 'publisher_id' => 11],
+            ['book_id' => 16, 'publisher_id' => 11],
+            ['book_id' => 17, 'publisher_id' => 4],
+            ['book_id' => 18, 'publisher_id' => 12],
+            ['book_id' => 19, 'publisher_id' => 13],
+            ['book_id' => 20, 'publisher_id' => 7],
+            ['book_id' => 21, 'publisher_id' => 16],
+            ['book_id' => 22, 'publisher_id' => 14],
+            ['book_id' => 23, 'publisher_id' => 14],
+            ['book_id' => 24, 'publisher_id' => 17],
+            ['book_id' => 25, 'publisher_id' => 18],
+            ['book_id' => 26, 'publisher_id' => 19],
+            ['book_id' => 27, 'publisher_id' => 24],
+            ['book_id' => 28, 'publisher_id' => 20],
+            ['book_id' => 29, 'publisher_id' => 21],
+            ['book_id' => 30, 'publisher_id' => 11],
+            ['book_id' => 31, 'publisher_id' => 23],
         ];
         DB::table('book_publishers')->insert($bookPublishers);
 
@@ -362,19 +423,19 @@ class DatabaseSeeder extends Seeder
             $numCopies = min($book['total_copies'], 3);
             for ($c = 1; $c <= $numCopies; $c++) {
                 DB::table('book_copies')->insert([
-                    'book_id' => $bookId,
-                    'accession_no' => 'ACC' . $year . str_pad($copyId, 6, '0', STR_PAD_LEFT),
-                    'barcode' => 'BC' . str_pad($copyId, 8, '0', STR_PAD_LEFT),
+                    'book_id'          => $bookId,
+                    'accession_no'     => 'ACC' . $year . str_pad($copyId, 6, '0', STR_PAD_LEFT),
+                    'barcode'          => 'BC' . str_pad($copyId, 8, '0', STR_PAD_LEFT),
                     'condition_status' => 'good',
-                    'status' => 'available',
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'status'           => 'available',
+                    'created_at'       => now(),
+                    'updated_at'       => now(),
                 ]);
                 $copyId++;
             }
         }
 
-        // Sample Students
+        // ─── Sample Students ───
         $students = [
             ['student_no' => '24-00001', 'library_card_no' => 'LIB202400001', 'first_name' => 'Juan', 'last_name' => 'Dela Cruz', 'grade_level_id' => 10, 'section_id' => 28],
             ['student_no' => '24-00002', 'library_card_no' => 'LIB202400002', 'first_name' => 'Maria', 'last_name' => 'Santos', 'grade_level_id' => 11, 'section_id' => 31],
@@ -384,15 +445,15 @@ class DatabaseSeeder extends Seeder
         ];
         foreach ($students as $student) {
             DB::table('students')->insert(array_merge($student, [
-                'school_year' => '2025-2026',
-                'status' => 'active',
+                'school_year'       => '2025-2026',
+                'status'            => 'active',
                 'max_books_allowed' => 3,
-                'created_at' => now(),
-                'updated_at' => now(),
+                'created_at'        => now(),
+                'updated_at'        => now(),
             ]));
         }
 
-        // Settings
+        // ─── Settings ───
         $settings = [
             ['key' => 'library_name', 'value' => 'FEATI University Library', 'group' => 'general'],
             ['key' => 'school_name', 'value' => 'FEATI University', 'group' => 'general'],

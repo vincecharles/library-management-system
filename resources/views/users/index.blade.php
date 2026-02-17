@@ -14,11 +14,11 @@
 <div class="filter-bar">
     <form method="GET" action="{{ route('users.index') }}">
         <div class="row g-2 align-items-end">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label for="search" class="form-label">Search</label>
                 <input type="text" name="search" id="search" class="form-control" placeholder="Search by name, username, or email..." value="{{ request('search') }}">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label for="role" class="form-label">Role</label>
                 <select name="role" id="role" class="form-select">
                     <option value="">All Roles</option>
@@ -27,7 +27,17 @@
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
+                <label for="user_type" class="form-label">User Type</label>
+                <select name="user_type" id="user_type" class="form-select">
+                    <option value="">All Types</option>
+                    <option value="librarian" {{ request('user_type') == 'librarian' ? 'selected' : '' }}>Librarian</option>
+                    <option value="student_assistant" {{ request('user_type') == 'student_assistant' ? 'selected' : '' }}>Student Assistant</option>
+                    <option value="student" {{ request('user_type') == 'student' ? 'selected' : '' }}>Student</option>
+                    <option value="faculty" {{ request('user_type') == 'faculty' ? 'selected' : '' }}>Faculty</option>
+                </select>
+            </div>
+            <div class="col-md-2">
                 <label for="status" class="form-label">Status</label>
                 <select name="status" id="status" class="form-select">
                     <option value="">All Status</option>
@@ -36,10 +46,15 @@
                     <option value="locked" {{ request('status') == 'locked' ? 'selected' : '' }}>Locked</option>
                 </select>
             </div>
-            <div class="col-md-2">
+            <div class="col-md-1">
                 <button type="submit" class="btn btn-danger w-100">
                     <i class="fas fa-filter me-1"></i> Filter
                 </button>
+            </div>
+            <div class="col-md-1">
+                <a href="{{ route('users.index') }}" class="btn btn-outline-secondary w-100">
+                    <i class="fas fa-redo"></i>
+                </a>
             </div>
         </div>
     </form>
@@ -57,6 +72,7 @@
                         <th>Username</th>
                         <th>Email</th>
                         <th>Role</th>
+                        <th>User Type</th>
                         <th>Last Login</th>
                         <th>Status</th>
                         <th>Actions</th>
@@ -74,11 +90,18 @@
                                 <span class="badge bg-dark">Administrator</span>
                             @elseif($user->role && $user->role->name == 'Librarian')
                                 <span class="badge bg-danger">Librarian</span>
-                            @elseif($user->role && $user->role->name == 'Assistant Librarian')
-                                <span class="badge bg-success">Assistant Librarian</span>
+                            @elseif($user->role && $user->role->name == 'Student Assistant')
+                                <span class="badge bg-success">Student Assistant</span>
+                            @elseif($user->role && $user->role->name == 'Student')
+                                <span class="badge bg-info">Student</span>
+                            @elseif($user->role && $user->role->name == 'Faculty')
+                                <span class="badge bg-warning text-dark">Faculty</span>
                             @else
                                 <span class="badge bg-secondary">{{ $user->role->name ?? 'N/A' }}</span>
                             @endif
+                        </td>
+                        <td>
+                            <span class="text-muted small">{{ $user->user_type_label }}</span>
                         </td>
                         <td>{{ $user->last_login_at ? $user->last_login_at->format('M d, Y h:i A') : 'Never' }}</td>
                         <td>
@@ -94,6 +117,7 @@
                             <a href="{{ route('users.edit', $user) }}" class="btn btn-sm btn-info">
                                 <i class="fas fa-edit"></i> Edit
                             </a>
+                            @if($user->id !== auth()->id())
                             <form action="{{ route('users.destroy', $user) }}" method="POST" class="d-inline delete-form">
                                 @csrf
                                 @method('DELETE')
@@ -101,11 +125,12 @@
                                     <i class="fas fa-trash"></i> Delete
                                 </button>
                             </form>
+                            @endif
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="8" class="text-center py-4 text-muted">
+                        <td colspan="9" class="text-center py-4 text-muted">
                             <i class="fas fa-users fa-2x mb-2 d-block"></i>
                             No users found.
                         </td>

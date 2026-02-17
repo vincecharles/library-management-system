@@ -142,6 +142,32 @@
             padding: 16px 24px 4px;
         }
 
+        /* Dropdown Navigation */
+        .sidebar .nav-dropdown-toggle {
+            cursor: pointer;
+        }
+        .sidebar .nav-dropdown-toggle .nav-chevron {
+            font-size: 11px;
+            transition: transform 0.25s ease;
+        }
+        .sidebar .nav-dropdown-toggle[aria-expanded="true"] .nav-chevron {
+            transform: rotate(180deg);
+        }
+        .sidebar .nav-dropdown-items {
+            background: rgba(0,0,0,0.15);
+        }
+        .sidebar .nav-dropdown-items .nav-link {
+            padding-left: 48px;
+            font-size: 13px;
+        }
+        .sidebar .nav-dropdown-items .nav-dropdown-items .nav-link {
+            padding-left: 64px;
+            font-size: 12px;
+        }
+        .sidebar .nav-child-link i {
+            font-size: 10px;
+        }
+
         /* Main Content */
         .main-content {
             margin-left: var(--sidebar-width);
@@ -335,6 +361,12 @@
         .info-card.info-red { background: #f8e8e8; border: 1px solid #f5b8b8; color: #9b1c1c; }
         .info-card.info-purple { background: #f8f4fc; border: 1px solid #d4bfe8; color: var(--purple); }
 
+        /* Pagination */
+        nav[role="navigation"] svg {
+            width: 12px;
+            height: 12px;
+        }
+
         @media (max-width: 768px) {
             .sidebar { display: none; }
             .main-content { margin-left: 0; }
@@ -365,80 +397,171 @@
 
     <!-- Sidebar -->
     <nav class="sidebar">
-        @php $role = Auth::user()->role->name ?? ''; @endphp
-
         <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
             <i class="fas fa-tachometer-alt"></i> Dashboard
         </a>
 
-        @if(in_array($role, ['Administrator', 'Librarian']))
-            <div class="nav-heading">Management</div>
-
-            @if($role === 'Administrator')
-            <a href="{{ route('users.index') }}" class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}">
-                <i class="fas fa-users-cog"></i> User Management
+        {{-- ═══ User Manage (dropdown) ═══ --}}
+        @if(Auth::user()->hasPermission('can_manage_users') || Auth::user()->hasPermission('can_manage_roles'))
+        <div class="nav-dropdown">
+            <a href="#" class="nav-link nav-dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#nav-user-manage">
+                <i class="fas fa-users-cog"></i>
+                <span>User Manage</span>
+                <i class="fas fa-chevron-down ms-auto nav-chevron"></i>
             </a>
-            @endif
+            <div class="collapse {{ request()->routeIs('users.*') || request()->routeIs('roles.*') ? 'show' : '' }}" id="nav-user-manage">
+                <div class="nav-dropdown-items">
+                    @can('can_manage_users')
+                    <a href="{{ route('users.index') }}" class="nav-link nav-child-link {{ request()->routeIs('users.*') ? 'active' : '' }}">
+                        <i class="fas fa-user"></i> User
+                    </a>
+                    @endcan
 
-            <a href="{{ route('students.index') }}" class="nav-link {{ request()->routeIs('students.*') ? 'active' : '' }}">
-                <i class="fas fa-user-graduate"></i> Student Management
+                    @can('can_manage_roles')
+                    <a href="{{ route('roles.index') }}" class="nav-link nav-child-link {{ request()->routeIs('roles.*') ? 'active' : '' }}">
+                        <i class="fas fa-user-shield"></i> Role
+                    </a>
+                    @endcan
+                </div>
+            </div>
+        </div>
+        @endif
+
+        {{-- Student Management (standalone) --}}
+        @can('can_manage_students')
+        <a href="{{ route('students.index') }}" class="nav-link {{ request()->routeIs('students.*') ? 'active' : '' }}">
+            <i class="fas fa-user-graduate"></i> Student Management
+        </a>
+        @endcan
+
+        {{-- ═══ Catalog (dropdown) ═══ --}}
+        <div class="nav-dropdown">
+            <a href="#" class="nav-link nav-dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#nav-catalog">
+                <i class="fas fa-book"></i>
+                <span>Catalog</span>
+                <i class="fas fa-chevron-down ms-auto nav-chevron"></i>
             </a>
+            <div class="collapse {{ request()->routeIs('books.*') || request()->routeIs('authors.*') || request()->routeIs('publishers.*') || request()->routeIs('categories.*') ? 'show' : '' }}" id="nav-catalog">
+                <div class="nav-dropdown-items">
+                    <a href="{{ route('books.index') }}" class="nav-link nav-child-link {{ request()->routeIs('books.*') ? 'active' : '' }}">
+                        <i class="fas fa-book-open"></i> Books
+                    </a>
+
+                    @can('can_add_categories')
+                    <a href="{{ route('authors.index') }}" class="nav-link nav-child-link {{ request()->routeIs('authors.*') ? 'active' : '' }}">
+                        <i class="fas fa-pen-fancy"></i> Authors
+                    </a>
+                    <a href="{{ route('publishers.index') }}" class="nav-link nav-child-link {{ request()->routeIs('publishers.*') ? 'active' : '' }}">
+                        <i class="fas fa-building"></i> Publishers
+                    </a>
+                    <a href="{{ route('categories.index') }}" class="nav-link nav-child-link {{ request()->routeIs('categories.*') ? 'active' : '' }}">
+                        <i class="fas fa-tags"></i> Categories
+                    </a>
+                    @endcan
+                </div>
+            </div>
+        </div>
+
+        {{-- ═══ Circulation (dropdown) ═══ --}}
+        @if(Auth::user()->hasPermission('can_issue_books') || Auth::user()->hasPermission('can_return_books'))
+        <div class="nav-dropdown">
+            <a href="#" class="nav-link nav-dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#nav-circulation">
+                <i class="fas fa-exchange-alt"></i>
+                <span>Circulation</span>
+                <i class="fas fa-chevron-down ms-auto nav-chevron"></i>
+            </a>
+            <div class="collapse {{ request()->routeIs('circulation.*') ? 'show' : '' }}" id="nav-circulation">
+                <div class="nav-dropdown-items">
+                    @can('can_issue_books')
+                    <a href="{{ route('circulation.issue') }}" class="nav-link nav-child-link {{ request()->routeIs('circulation.issue') ? 'active' : '' }}">
+                        <i class="fas fa-hand-holding"></i> Issue Book
+                    </a>
+                    @endcan
+
+                    @can('can_return_books')
+                    <a href="{{ route('circulation.return') }}" class="nav-link nav-child-link {{ request()->routeIs('circulation.return') ? 'active' : '' }}">
+                        <i class="fas fa-undo"></i> Return Book
+                    </a>
+                    @endcan
+
+                    <a href="{{ route('circulation.history') }}" class="nav-link nav-child-link {{ request()->routeIs('circulation.history') ? 'active' : '' }}">
+                        <i class="fas fa-history"></i> Borrowing History
+                    </a>
+                </div>
+            </div>
+        </div>
         @endif
 
-        <div class="nav-heading">Catalog</div>
-        <a href="{{ route('books.index') }}" class="nav-link {{ request()->routeIs('books.*') ? 'active' : '' }}">
-            <i class="fas fa-book"></i> Book Catalog
-        </a>
+        {{-- ═══ Finance (dropdown) ═══ --}}
+        <div class="nav-dropdown">
+            <a href="#" class="nav-link nav-dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#nav-finance">
+                <i class="fas fa-money-bill-wave"></i>
+                <span>Finance</span>
+                <i class="fas fa-chevron-down ms-auto nav-chevron"></i>
+            </a>
+            <div class="collapse {{ request()->routeIs('fines.*') ? 'show' : '' }}" id="nav-finance">
+                <div class="nav-dropdown-items">
+                    <a href="{{ route('fines.index') }}" class="nav-link nav-child-link {{ request()->routeIs('fines.*') ? 'active' : '' }}">
+                        <i class="fas fa-receipt"></i> Fine Manage
+                    </a>
+                </div>
+            </div>
+        </div>
 
-        @if(in_array($role, ['Administrator', 'Librarian']))
-        <a href="{{ route('authors.index') }}" class="nav-link {{ request()->routeIs('authors.*') ? 'active' : '' }}">
-            <i class="fas fa-pen-fancy"></i> Authors
-        </a>
-        <a href="{{ route('publishers.index') }}" class="nav-link {{ request()->routeIs('publishers.*') ? 'active' : '' }}">
-            <i class="fas fa-building"></i> Publishers
-        </a>
-        <a href="{{ route('categories.index') }}" class="nav-link {{ request()->routeIs('categories.*') ? 'active' : '' }}">
-            <i class="fas fa-tags"></i> Categories
-        </a>
+        {{-- ═══ Administration (dropdown) ═══ --}}
+        @if(Auth::user()->hasPermission('can_view_reports') || Auth::user()->hasPermission('can_manage_settings'))
+        <div class="nav-dropdown">
+            <a href="#" class="nav-link nav-dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#nav-admin">
+                <i class="fas fa-chart-bar"></i>
+                <span>Administration</span>
+                <i class="fas fa-chevron-down ms-auto nav-chevron"></i>
+            </a>
+            <div class="collapse {{ request()->routeIs('inventory.*') || request()->routeIs('reports.*') ? 'show' : '' }}" id="nav-admin">
+                <div class="nav-dropdown-items">
+                    <a href="{{ route('inventory.index') }}" class="nav-link nav-child-link {{ request()->routeIs('inventory.*') ? 'active' : '' }}">
+                        <i class="fas fa-boxes-stacked"></i> Inventory
+                    </a>
+
+                    @can('can_view_reports')
+                    <a href="{{ route('reports.index') }}" class="nav-link nav-child-link {{ request()->routeIs('reports.*') ? 'active' : '' }}">
+                        <i class="fas fa-file-alt"></i> Reports
+                    </a>
+                    @endcan
+                </div>
+            </div>
+        </div>
         @endif
 
-        <div class="nav-heading">Circulation</div>
-        <a href="{{ route('circulation.issue') }}" class="nav-link {{ request()->routeIs('circulation.issue') ? 'active' : '' }}">
-            <i class="fas fa-hand-holding"></i> Issue Book
-        </a>
-        <a href="{{ route('circulation.return') }}" class="nav-link {{ request()->routeIs('circulation.return') ? 'active' : '' }}">
-            <i class="fas fa-undo"></i> Return Book
-        </a>
-        <a href="{{ route('circulation.history') }}" class="nav-link {{ request()->routeIs('circulation.history') ? 'active' : '' }}">
-            <i class="fas fa-history"></i> Borrowing History
-        </a>
+        {{-- ═══ System (dropdown) ═══ --}}
+        @if(Auth::user()->hasPermission('can_manage_settings') || Auth::user()->hasPermission('can_manage_backups') || Auth::user()->hasPermission('can_view_audit_logs'))
+        <div class="nav-dropdown">
+            <a href="#" class="nav-link nav-dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#nav-system">
+                <i class="fas fa-cog"></i>
+                <span>System</span>
+                <i class="fas fa-chevron-down ms-auto nav-chevron"></i>
+            </a>
+            <div class="collapse {{ request()->routeIs('settings.*') || request()->routeIs('backup.*') || request()->routeIs('audit-logs.*') ? 'show' : '' }}" id="nav-system">
+                <div class="nav-dropdown-items">
+                    @can('can_manage_settings')
+                    <a href="{{ route('settings.index') }}" class="nav-link nav-child-link {{ request()->routeIs('settings.*') ? 'active' : '' }}">
+                        <i class="fas fa-sliders-h"></i> Settings
+                    </a>
+                    @endcan
 
-        <div class="nav-heading">Finance</div>
-        <a href="{{ route('fines.index') }}" class="nav-link {{ request()->routeIs('fines.*') ? 'active' : '' }}">
-            <i class="fas fa-money-bill-wave"></i> Fine Management
-        </a>
+                    @can('can_manage_backups')
+                    <a href="{{ route('backup.index') }}" class="nav-link nav-child-link {{ request()->routeIs('backup.*') ? 'active' : '' }}">
+                        <i class="fas fa-database"></i> Backup / Restore
+                    </a>
+                    @endcan
 
-        @if(in_array($role, ['Administrator', 'Librarian']))
-        <div class="nav-heading">Administration</div>
-        <a href="{{ route('inventory.index') }}" class="nav-link {{ request()->routeIs('inventory.*') ? 'active' : '' }}">
-            <i class="fas fa-boxes-stacked"></i> Inventory
-        </a>
-        <a href="{{ route('reports.index') }}" class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}">
-            <i class="fas fa-chart-bar"></i> Reports
-        </a>
-        @endif
-
-        @if($role === 'Administrator')
-        <div class="nav-divider"></div>
-        <a href="{{ route('settings.index') }}" class="nav-link {{ request()->routeIs('settings.*') ? 'active' : '' }}">
-            <i class="fas fa-cog"></i> Settings
-        </a>
-        <a href="{{ route('backup.index') }}" class="nav-link {{ request()->routeIs('backup.*') ? 'active' : '' }}">
-            <i class="fas fa-database"></i> Backup / Restore
-        </a>
-        <a href="{{ route('audit-logs.index') }}" class="nav-link {{ request()->routeIs('audit-logs.*') ? 'active' : '' }}">
-            <i class="fas fa-clipboard-list"></i> Audit Logs
-        </a>
+                    @can('can_view_audit_logs')
+                    <a href="{{ route('audit-logs.index') }}" class="nav-link nav-child-link {{ request()->routeIs('audit-logs.*') ? 'active' : '' }}">
+                        <i class="fas fa-clipboard-list"></i> Audit Logs
+                    </a>
+                    @endcan
+                </div>
+            </div>
+        </div>
         @endif
     </nav>
 
@@ -500,6 +623,17 @@
                     if (result.isConfirmed) form.submit();
                 });
             });
+        });
+
+        // Auto-open category dropdown if a category filter is active
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('category')) {
+                const catDropdown = document.getElementById('catalog-categories');
+                if (catDropdown) {
+                    catDropdown.classList.add('show');
+                }
+            }
         });
     </script>
     @stack('scripts')

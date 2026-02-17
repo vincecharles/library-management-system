@@ -33,6 +33,11 @@ class UserController extends Controller
             $query->where('role_id', $request->role);
         }
 
+        // Filter by user type
+        if ($request->filled('user_type')) {
+            $query->where('user_type', $request->user_type);
+        }
+
         // Filter by status
         if ($request->filled('status')) {
             $query->where('status', $request->status);
@@ -60,13 +65,20 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'username' => 'required|string|max:50|unique:users,username',
-            'name'     => 'required|string|max:100',
-            'email'    => 'required|email|max:100|unique:users,email',
-            'password' => 'required|string|min:8|confirmed',
-            'role_id'  => 'required|exists:roles,id',
-            'status'   => 'required|in:active,inactive',
+            'username'         => 'required|string|max:50|unique:users,username',
+            'name'             => 'required|string|max:100',
+            'email'            => 'required|email|max:100|unique:users,email',
+            'password'         => 'required|string|min:8|confirmed',
+            'role_id'          => 'required|exists:roles,id',
+            'user_type'        => 'required|in:librarian,student_assistant,student,faculty',
+            'faculty_subtype'  => 'nullable|required_if:user_type,faculty|in:teacher,non_teacher,staff',
+            'status'           => 'required|in:active,inactive',
         ]);
+
+        // Clear faculty_subtype if user_type is not faculty
+        if ($validated['user_type'] !== 'faculty') {
+            $validated['faculty_subtype'] = null;
+        }
 
         $validated['password'] = Hash::make($validated['password']);
 
@@ -76,7 +88,7 @@ class UserController extends Controller
             'user_id'    => auth()->id(),
             'action'     => 'Create User',
             'module'     => 'User Management',
-            'details'    => "Created user account for {$user->name} (Username: {$user->username}).",
+            'details'    => "Created user account for {$user->name} (Username: {$user->username}, Type: {$user->user_type_label}).",
             'ip_address' => $request->ip(),
         ]);
 
@@ -100,13 +112,20 @@ class UserController extends Controller
     public function update(Request $request, User $user)
     {
         $validated = $request->validate([
-            'username' => ['required', 'string', 'max:50', Rule::unique('users', 'username')->ignore($user->id)],
-            'name'     => 'required|string|max:100',
-            'email'    => ['required', 'email', 'max:100', Rule::unique('users', 'email')->ignore($user->id)],
-            'password' => 'nullable|string|min:8|confirmed',
-            'role_id'  => 'required|exists:roles,id',
-            'status'   => 'required|in:active,inactive,locked',
+            'username'         => ['required', 'string', 'max:50', Rule::unique('users', 'username')->ignore($user->id)],
+            'name'             => 'required|string|max:100',
+            'email'            => ['required', 'email', 'max:100', Rule::unique('users', 'email')->ignore($user->id)],
+            'password'         => 'nullable|string|min:8|confirmed',
+            'role_id'          => 'required|exists:roles,id',
+            'user_type'        => 'required|in:librarian,student_assistant,student,faculty',
+            'faculty_subtype'  => 'nullable|required_if:user_type,faculty|in:teacher,non_teacher,staff',
+            'status'           => 'required|in:active,inactive,locked',
         ]);
+
+        // Clear faculty_subtype if user_type is not faculty
+        if ($validated['user_type'] !== 'faculty') {
+            $validated['faculty_subtype'] = null;
+        }
 
         // Only update password if provided
         if (!empty($validated['password'])) {

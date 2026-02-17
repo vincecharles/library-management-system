@@ -12,7 +12,7 @@
 
 <div class="card">
     <div class="card-header">
-        <i class="fas fa-user-edit me-1"></i> User Information
+        <i class="fas fa-user-edit me-1"></i> User Information — {{ $user->name }}
     </div>
     <div class="card-body">
         <form action="{{ route('users.update', $user) }}" method="POST">
@@ -60,9 +60,36 @@
 
             <div class="row mb-3">
                 <div class="col-md-6">
-                    <label for="password" class="form-label">Password</label>
-                    <input type="password" name="password" id="password" class="form-control @error('password') is-invalid @enderror" placeholder="Leave blank to keep current password">
-                    <small class="text-muted">Leave blank to keep current password.</small>
+                    <label for="user_type" class="form-label">User Type <span class="text-danger">*</span></label>
+                    <select name="user_type" id="user_type" class="form-select @error('user_type') is-invalid @enderror" required>
+                        <option value="">Select User Type</option>
+                        <option value="librarian" {{ old('user_type', $user->user_type) == 'librarian' ? 'selected' : '' }}>Librarian</option>
+                        <option value="student_assistant" {{ old('user_type', $user->user_type) == 'student_assistant' ? 'selected' : '' }}>Student Assistant</option>
+                        <option value="student" {{ old('user_type', $user->user_type) == 'student' ? 'selected' : '' }}>Student</option>
+                        <option value="faculty" {{ old('user_type', $user->user_type) == 'faculty' ? 'selected' : '' }}>Faculty</option>
+                    </select>
+                    @error('user_type')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+                <div class="col-md-6" id="faculty-subtype-wrapper" style="{{ old('user_type', $user->user_type) === 'faculty' ? '' : 'display:none' }}">
+                    <label for="faculty_subtype" class="form-label">Faculty Sub-Type <span class="text-danger">*</span></label>
+                    <select name="faculty_subtype" id="faculty_subtype" class="form-select @error('faculty_subtype') is-invalid @enderror">
+                        <option value="">Select Faculty Sub-Type</option>
+                        <option value="teacher" {{ old('faculty_subtype', $user->faculty_subtype) == 'teacher' ? 'selected' : '' }}>Teacher</option>
+                        <option value="non_teacher" {{ old('faculty_subtype', $user->faculty_subtype) == 'non_teacher' ? 'selected' : '' }}>Non-Teacher</option>
+                        <option value="staff" {{ old('faculty_subtype', $user->faculty_subtype) == 'staff' ? 'selected' : '' }}>Staff</option>
+                    </select>
+                    @error('faculty_subtype')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="password" class="form-label">Password <small class="text-muted">(leave blank to keep current)</small></label>
+                    <input type="password" name="password" id="password" class="form-control @error('password') is-invalid @enderror" placeholder="Enter new password">
                     @error('password')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
@@ -79,6 +106,7 @@
                     <select name="status" id="status" class="form-select @error('status') is-invalid @enderror">
                         <option value="active" {{ old('status', $user->status) == 'active' ? 'selected' : '' }}>Active</option>
                         <option value="inactive" {{ old('status', $user->status) == 'inactive' ? 'selected' : '' }}>Inactive</option>
+                        <option value="locked" {{ old('status', $user->status) == 'locked' ? 'selected' : '' }}>Locked</option>
                     </select>
                     @error('status')
                         <div class="invalid-feedback">{{ $message }}</div>
@@ -86,15 +114,17 @@
                 </div>
             </div>
 
-            <div class="mb-4">
-                <label class="form-label">Available Roles</label>
+            @if($user->user_type)
+            <div class="mb-3">
+                <label class="form-label">Current Classification</label>
                 <div>
-                    <span class="badge bg-dark me-1"><i class="fas fa-shield-alt me-1"></i> Administrator</span>
-                    <span class="badge bg-danger me-1"><i class="fas fa-user-tie me-1"></i> Librarian</span>
-                    <span class="badge bg-success me-1"><i class="fas fa-user me-1"></i> Assistant Librarian</span>
+                    <span class="badge bg-info">{{ $user->user_type_label }}</span>
+                    @if($user->role)
+                        <span class="badge bg-secondary ms-1">Role: {{ $user->role->name }}</span>
+                    @endif
                 </div>
-                <small class="text-muted mt-1 d-block">Each role has different access permissions within the system.</small>
             </div>
+            @endif
 
             <hr>
 
@@ -110,3 +140,20 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.getElementById('user_type').addEventListener('change', function() {
+    const wrapper = document.getElementById('faculty-subtype-wrapper');
+    const select = document.getElementById('faculty_subtype');
+    if (this.value === 'faculty') {
+        wrapper.style.display = '';
+        select.setAttribute('required', 'required');
+    } else {
+        wrapper.style.display = 'none';
+        select.removeAttribute('required');
+        select.value = '';
+    }
+});
+</script>
+@endpush
