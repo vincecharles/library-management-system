@@ -4,7 +4,6 @@
 
 @push('styles')
 <style>
-    /* GoHighLevel-style permission toggles */
     .permission-group {
         border: 1px solid var(--light-gray);
         border-radius: 10px;
